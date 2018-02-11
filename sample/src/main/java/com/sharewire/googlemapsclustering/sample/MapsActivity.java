@@ -17,6 +17,9 @@ import net.sharewire.googlemapsclustering.ClusterManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -43,7 +46,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        ClusterManager<SampleClusterItem> clusterManager = new ClusterManager<>(this, googleMap);
+        final ClusterManager<SampleClusterItem> clusterManager = new ClusterManager<>(this, googleMap);
         clusterManager.setClusterClickCallback(new ClusterManager.ClusterClickCallback<SampleClusterItem>() {
             @Override
             public boolean onClick(@NonNull Cluster<SampleClusterItem> cluster) {
@@ -61,11 +64,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         googleMap.setOnCameraIdleListener(clusterManager);
 
         List<SampleClusterItem> clusterItems = new ArrayList<>();
-        for (int i = 0; i < 20000; i++) {
+        for (int i = 0; i < 1000; i++) {
             clusterItems.add(new SampleClusterItem(
                     RandomLocationGenerator.generate(NETHERLANDS)));
         }
         clusterManager.setItems(clusterItems);
+
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        for (int i = 0; i < 19; i++) {
+            executorService.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    Thread.sleep(500); // To emulate network loading latency
+                    List<SampleClusterItem> clusterItems = new ArrayList<>();
+                    for (int i = 0; i < 1000; i++) {
+                        clusterItems.add(new SampleClusterItem(
+                                RandomLocationGenerator.generate(NETHERLANDS)));
+                    }
+                    clusterManager.addItems(clusterItems);
+                    return null;
+                }
+            });
+        }
     }
 
     private void setupMapFragment() {

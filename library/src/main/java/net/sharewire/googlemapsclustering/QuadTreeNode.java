@@ -3,12 +3,14 @@ package net.sharewire.googlemapsclustering;
 import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 class QuadTreeNode<T extends QuadTreePoint> {
 
     private final QuadTreeRect bounds;
-    private final List<T> points;
+    private final Set<T> points;
     private final int bucketSize;
     private QuadTreeNode<T> northWest;
     private QuadTreeNode<T> northEast;
@@ -17,7 +19,7 @@ class QuadTreeNode<T extends QuadTreePoint> {
 
     QuadTreeNode(double north, double west, double south, double east, int bucketSize) {
         this.bounds = new QuadTreeRect(north, west, south, east);
-        this.points = new ArrayList<>(bucketSize);
+        this.points = new HashSet<>(bucketSize);
         this.bucketSize = bucketSize;
     }
 

@@ -181,9 +181,19 @@ public class ClusterManager<T extends ClusterItem> implements GoogleMap.OnCamera
      *
      * @param clusterItems the items to be clustered
      */
-    public void setItems(@NonNull List<T> clusterItems) {
+    public void setItems(@NonNull Iterable<T> clusterItems) {
         checkNotNull(clusterItems);
         buildQuadTree(clusterItems);
+    }
+
+    /**
+     * Add new items to be clustered without replacing the old ones.
+     *
+     * @param clusterItems the items to be clustered
+     */
+    public void addItems(@NonNull Iterable<T> clusterItems) {
+        checkNotNull(clusterItems);
+        extendQuadTree(clusterItems);
     }
 
     /**
@@ -200,12 +210,16 @@ public class ClusterManager<T extends ClusterItem> implements GoogleMap.OnCamera
         cluster();
     }
 
-    private void buildQuadTree(@NonNull List<T> clusterItems) {
+    private void buildQuadTree(@NonNull Iterable<T> clusterItems) {
         if (mQuadTreeTask != null) {
             mQuadTreeTask.cancel(true);
         }
 
-        mQuadTreeTask = new QuadTreeTask(clusterItems).executeOnExecutor(mExecutor);
+        mQuadTreeTask = new ReplaceQuadTreeTask(clusterItems).executeOnExecutor(mExecutor);
+    }
+
+    private void extendQuadTree(@NonNull Iterable<T> clusterItems) {
+        new QuadTreeTask(clusterItems).executeOnExecutor(mExecutor);
     }
 
     private void cluster() {
@@ -277,15 +291,14 @@ public class ClusterManager<T extends ClusterItem> implements GoogleMap.OnCamera
 
     private class QuadTreeTask extends AsyncTask<Void, Void, Void> {
 
-        private final List<T> mClusterItems;
+        private final Iterable<T> mClusterItems;
 
-        private QuadTreeTask(@NonNull List<T> clusterItems) {
+        private QuadTreeTask(@NonNull Iterable<T> clusterItems) {
             mClusterItems = clusterItems;
         }
 
         @Override
         protected Void doInBackground(Void... params) {
-            mQuadTree.clear();
             for (T clusterItem : mClusterItems) {
                 mQuadTree.insert(clusterItem);
             }
@@ -295,6 +308,24 @@ public class ClusterManager<T extends ClusterItem> implements GoogleMap.OnCamera
         @Override
         protected void onPostExecute(Void aVoid) {
             cluster();
+        }
+    }
+
+    private class ReplaceQuadTreeTask extends QuadTreeTask {
+
+        private ReplaceQuadTreeTask(@NonNull Iterable<T> clusterItems) {
+            super(clusterItems);
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            mQuadTree.clear();
+            return super.doInBackground(params);
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
             mQuadTreeTask = null;
         }
     }
